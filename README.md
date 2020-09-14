@@ -3,7 +3,7 @@
 
 [![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/aecampos/wakeupbr.svg?label=build)](https://hub.docker.com/r/aecampos/wakeupbr)
 
-A containerized version of [`wakeupbr`]. Acts as bridge for Wake-on-LAN packets. The program
+A containerized version of [`wakeupbr`](https://github.com/mpolden/wakeup#bridge). Acts as bridge for Wake-on-LAN packets. The program
 listens for Wake-on-LAN packets on the incoming interface and forwards any
 received packets to the outgoing interface. Useful for allowing other containers to send WOL packets without running them in host networking mode.
 
