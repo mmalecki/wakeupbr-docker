@@ -1,27 +1,41 @@
-# wakeup
 
-[![Build Status](https://travis-ci.org/mpolden/wakeup.svg?branch=master)](https://travis-ci.org/mpolden/wakeup)
+# wakeupbr-docker
 
-`wakeup` provides a small HTTP API and JavaScript front-end for
-sending [Wake-on-LAN](https://en.wikipedia.org/wiki/Wake-on-LAN) messages to a
-target device.
+[![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/aecampos/wakeupbr.svg?label=build)](https://hub.docker.com/r/aecampos/wakeupbr)
 
-## `wakeup` usage
+A containerized version of [`wakeupbr`]. Acts as bridge for Wake-on-LAN packets. The program
+listens for Wake-on-LAN packets on the incoming interface and forwards any
+received packets to the outgoing interface. Useful for allowing other containers to send WOL packets without running them in host networking mode.
 
+
+
+
+## Quickstart
+Start `wakeupbr` with:
 ```
-$ wakeup -h
-Usage:
-  wakeup [OPTIONS]
-
-Application Options:
-  -c, --cache=FILE     Path to cache file
-  -b, --bind=IP        IP address to bind to when sending WOL packets
-  -l, --listen=ADDR    Listen address (default: :8080)
-  -s, --static=DIR     Path to directory containing static assets
-
-Help Options:
-  -h, --help           Show this help message
+docker  run --net=host --name wakeupbr aecampos/wakeupbr -o <interface address>
 ```
+For example:
+```
+docker  run --net=host --name wakeupbr aecampos/wakeupbr -o 192.168.1.255
+```
+
+Other command-line arguments (`-h`, `-l`) can also be specified.
+
+Note: `--net=host` is usually required for magic packets to make it onto your lan.
+
+### Docker Compose
+Example [`docker-compose`](https://github.com/docker/compose) file that runs wakeupbr, listening on `0.0.0.0:9` (default, all interfaces) and forwarding WOL packets to `192.168.1.255`.
+```
+version: '3.6'
+services:
+  wakeupbr:
+    image: aecampos/wakeupbr
+    network_mode: host
+    command: -l 0.0.0.0:9 -o 192.168.1.255
+    restart: always
+```
+Alternatively, you can use the sample [`docker-compose.yml`](https://github.com/adriancampos/wakeupbr-docker/blob/master/docker-compose.yml) file to start the container with `docker compose up`.
 
 ## `wakeupbr` usage
 
@@ -38,42 +52,7 @@ Help Options:
   -h, --help          Show this help message
 ```
 
-## API
-
-Wake a device:
-
-`$ curl -XPOST -d '{"macAddress":"AB:CD:EF:12:34:56"}' http://localhost:8080/api/v1/wake`
-
-A name for the device can also be provided, to make it easy to identify later:
-
-`$ curl -XPOST -d '{"name":"foo","macAddress":"AB:CD:EF:12:34:56"}' http://localhost:8080/api/v1/wake`
-
-List devices that have previously been woken:
-
-```
-$ curl -s http://localhost:8080/api/v1/wake | jq .
-{
-  "devices": [
-    {
-      "name": "foo",
-      "macAddress": "AB:CD:EF:12:34:56"
-    }
-  ]
-}
-```
-
-Delete a device:
-
-`$ curl -XDELETE -d '{"macAddress":"AB:CD:EF:12:34:56"}' http://localhost:8080/api/v1/wake`
-
-## Front-end
-
-A basic JavaScript front-end is included. It can be served by `wakeup` by
-passing the path to `static` as the `-s` option.
-
-![Front-end screenshot](static/screenshot.png)
-
-## Bridge
+## `wakeupbr` Details
 
 The `wakeupbr` program acts as bridge for Wake-on-LAN packets. The program
 listens for Wake-on-LAN packets on the incoming interface and forwards any
@@ -120,3 +99,14 @@ listen on port 9000 and run as a regular user:
 ```
 $ wakeupbr -l 10.0.0.10:9000 -o 172.16.0.10
 ```
+
+## Example: HomeAssistant
+This bridge is useful, for example, for allowing a [Home Assistant](http://home-assistant.io/) docker container to send WOL packets without using `net=host` on the container.
+
+You can use the [wake on lan integration](https://www.home-assistant.io/integrations/wake_on_lan/) normally:
+```
+switch:
+  - platform: wake_on_lan
+    mac: "ab:cd:ef:gh:ij:jk"  
+```
+and rely on `wakeupbr` to forward the WOL packets to the rest of your lan.
